@@ -21,7 +21,9 @@ local function clearAllESP()
             if hl then hl:Destroy() end
         end
     end
-    EspFolder:ClearAllChildren()
+    if EspFolder then
+        EspFolder:ClearAllChildren()
+    end
 end
 
 -- Перезапуск скрипта при повторном инжекте
@@ -120,12 +122,17 @@ local function stopFlying()
     if hum then hum.PlatformStand = false end
 end
 
+-- [ИСПРАВЛЕНО] Полное выключение всех функций при закрытии
 CloseBtn.MouseButton1Click:Connect(function()
     ScriptActive = false
-    stopFlying()
+    States.Murd = false
+    States.Sheriff = false
+    States.Innocents = false
     States.Aim = false
     States.NoClipInFly = false
+    stopFlying()
     IsSpectating = false
+    
     Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
     local char = LocalPlayer.Character
     if char then
@@ -133,6 +140,7 @@ CloseBtn.MouseButton1Click:Connect(function()
             if part:IsA("BasePart") then part.CanCollide = true end
         end
     end
+    
     clearAllESP()
     ScreenGui:Destroy()
     EspFolder:Destroy()
@@ -143,7 +151,7 @@ Title.Parent = MainFrame
 Title.Size = UDim2.new(0.5, 0, 0, 44)
 Title.Position = UDim2.new(0, 16, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "MM2 HUB V3.3 OPTIMIZED"
+Title.Text = "MM2 HUB V3.4 FIXED"
 Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -542,11 +550,10 @@ RunService.RenderStepped:Connect(function()
     if moveDir.Magnitude > 0 then FlyVelocity.Velocity = moveDir.Unit * FlySpeed else FlyVelocity.Velocity = Vector3.new(0,0,0) end
 end)
 
--- === ПЛАВНАЯ И ВЫСОКООПТИМИЗИРОВАННАЯ СИСТЕМА ESP ===
+-- СИСТЕМА ESP
 local function updateESP(playerInstance, character, color, enabled)
     if not ScriptActive then return end
     
-    -- 1. Обработка Highlight (внутри персонажа)
     local hl = character:FindFirstChild("Ultimate_ESP")
     if not enabled then 
         if hl then hl:Destroy() end 
@@ -561,7 +568,6 @@ local function updateESP(playerInstance, character, color, enabled)
         hl.FillColor = color
     end
 
-    -- 2. Обработка ников (Вне персонажа, во внешней папке)
     local nameGuiName = "NameGui_" .. playerInstance.Name
     local nameGui = EspFolder:FindFirstChild(nameGuiName)
     
@@ -576,7 +582,7 @@ local function updateESP(playerInstance, character, color, enabled)
         nameGui.Name = nameGuiName
         nameGui.AlwaysOnTop = true
         nameGui.Size = UDim2.new(0, 180, 0, 40)
-        nameGui.MaxDistance = 450 -- Ограничение дистанции рендера ников спасает FPS
+        nameGui.MaxDistance = 450 
         nameGui.Parent = EspFolder
 
         local nameLabel = Instance.new("TextLabel")
@@ -590,7 +596,6 @@ local function updateESP(playerInstance, character, color, enabled)
         nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     end
 
-    -- Прямая привязка Adornee (без пересоздания) гарантирует нулевой делей движения
     if nameGui.Adornee ~= head then
         nameGui.Adornee = head
     end
@@ -598,7 +603,6 @@ local function updateESP(playerInstance, character, color, enabled)
     local roleText, _ = getPlayerStatus(playerInstance)
     local displayName = playerInstance.DisplayName or playerInstance.Name
     
-    -- Сравниваем старый текст, чтобы лишний раз не обновлять свойства (сильно снижает лаги)
     local targetText = displayName .. " [" .. roleText .. "]"
     if nameGui.NameLabel.Text ~= targetText then
         nameGui.NameLabel.Text = targetText
@@ -606,11 +610,10 @@ local function updateESP(playerInstance, character, color, enabled)
     end
 end
 
--- Основной поток рендеринга (Синхронизирован с частотой кадров дисплея)
+-- Поток рендеринга
 RunService.RenderStepped:Connect(function()
     if not ScriptActive then return end
     
-    -- Чистим ники вышедших игроков
     for _, gui in pairs(EspFolder:GetChildren()) do
         local pName = string.sub(gui.Name, 9)
         local p = Players:FindFirstChild(pName)
@@ -619,7 +622,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Обновляем данные для каждого активного игрока
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local role, _ = getPlayerStatus(p)
@@ -634,7 +636,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Легкий фоновый цикл только для текста инфо-панели (чтобы не грузить рендер)
+-- Фоновый цикл инфо-панели
 task.spawn(function()
     while ScriptActive do
         local Murderer, Sheriff = nil, nil
@@ -655,7 +657,7 @@ TpButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- === УЛЬТИМАТИВНЫЙ БЕЗОПАСНЫЙ ФЛИНГ С ПОЛНЫМ ГАШЕНИЕМ ИНЕРЦИИ ===
+-- ФЛИНГ ЛОГИКА
 local function runFlingLogic(targetPlayer)
     if not ScriptActive or not targetPlayer or not targetPlayer.Character then return end
     
@@ -706,12 +708,11 @@ local function runFlingLogic(targetPlayer)
             
             root.Anchored = true
             
-            -- Буфер гашения скорости на 15 кадров
             for i = 1, 15 do
                 root.CFrame = originalCFrame
                 root.Velocity = Vector3.new(0,0,0)
                 root.RotVelocity = Vector3.new(0,0,0)
-                RunService.Heartbeat:Wait()
+                Heartbeat:Wait()
             end
             
             root.Anchored = false
