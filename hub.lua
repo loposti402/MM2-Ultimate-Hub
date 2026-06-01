@@ -133,7 +133,6 @@ CloseBtn.MouseButton1Click:Connect(function()
         end
     end
     
-    -- Принудительно возвращаем гравитацию при закрытии меню на всякий случай
     workspace.Gravity = 196.2
     
     clearAllESP()
@@ -146,7 +145,7 @@ Title.Parent = MainFrame
 Title.Size = UDim2.new(0.5, 0, 0, 44)
 Title.Position = UDim2.new(0, 16, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "MM2 HIGH-BYPASS HUB"
+Title.Text = "MM2 PING-COMPENSATED HUB"
 Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -265,13 +264,13 @@ LineFling.Parent = MainScroll LineFling.Size = UDim2.new(0.92, 0, 0, 1) LineFlin
 local FlingSelectBtn = Instance.new("TextButton") 
 styleButton(FlingSelectBtn, "🎯 Выбрать цель для флинга", UDim2.new(0.04, 0, 0, 337), Color3.fromRGB(35, 35, 40))
 local FlingButton = Instance.new("TextButton") 
-styleButton(FlingButton, "УНИЧТОЖИТЬ ЦЕЛЬ", UDim2.new(0.04, 0, 0, 374), Color3.fromRGB(180, 35, 35))
+styleButton(FlingButton, "УНИЧТОЖИТЬ ЦЕЛЬ (ОБЫЧНЫЙ)", UDim2.new(0.04, 0, 0, 374), Color3.fromRGB(180, 35, 35))
 
 local FlingMurdButton = Instance.new("TextButton")
 styleButton(FlingMurdButton, "🔥 УНИЧТОЖИТЬ МАРДЕРА", UDim2.new(0.04, 0, 0, 411), Color3.fromRGB(210, 80, 20))
 
 local FlingCheaterButton = Instance.new("TextButton")
-styleButton(FlingCheaterButton, "🌌 УНИЧТОЖИТЬ ЧИТЕРА ЗА КАРТОЙ", UDim2.new(0.04, 0, 0, 448), Color3.fromRGB(130, 20, 180))
+styleButton(FlingCheaterButton, "🌌 VOID-ФЛИНГ (ПИНГ 200+)", UDim2.new(0.04, 0, 0, 448), Color3.fromRGB(130, 20, 180))
 
 local LineTp = Instance.new("Frame")
 LineTp.Parent = MainScroll LineTp.Size = UDim2.new(0.92, 0, 0, 1) LineTp.Position = UDim2.new(0.04, 0, 0, 494) LineTp.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
@@ -292,8 +291,9 @@ styleButton(SpecButton, "НАЧАТЬ СЛЕДИТЬ", UDim2.new(0.04, 0, 0, 631
 local LineFastBinds = Instance.new("Frame")
 LineFastBinds.Parent = MainScroll LineFastBinds.Size = UDim2.new(0.92, 0, 0, 1) LineFastBinds.Position = UDim2.new(0.04, 0, 0, 674) LineFastBinds.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineFastBinds.BorderSizePixel = 0
 
-local FastKillSBtn = Instance.new("TextButton") styleButton(FastKillSBtn, "🔪 Преследовать Шерифа", UDim2.new(0.04, 0, 0, 684), Color3.fromRGB(40, 80, 180))
-local FastKillIBtn = Instance.new("TextButton") styleButton(FastKillIBtn, "🔪 Преследовать Мирного", UDim2.new(0.04, 0, 0, 721), Color3.fromRGB(40, 150, 80))
+-- КНОПКИ АВТО-КИЛЛА НОЖОМ
+local FastKillSBtn = Instance.new("TextButton") styleButton(FastKillSBtn, "🔪 Кильнуть Шерифа ножом + Бэк", UDim2.new(0.04, 0, 0, 684), Color3.fromRGB(190, 30, 30))
+local FastKillIBtn = Instance.new("TextButton") styleButton(FastKillIBtn, "🔪 Кильнуть Мирного ножом + Бэк", UDim2.new(0.04, 0, 0, 721), Color3.fromRGB(210, 70, 20))
 
 function getPlayerStatus(p)
     if not p or not p.Parent then return "НЕТ В ИГРЕ", Color3.fromRGB(120,120,120) end
@@ -341,8 +341,70 @@ local function findActiveInGamePlayer(roleName)
     return nil
 end
 
-local function actionKillSheriff() local ts = findActiveInGamePlayer("ШЕРИФ") if ts then chaseAndKill(ts) end end
-local function actionKillInnocents() local ti = findActiveInGamePlayer("МИРНЫЙ") if ti then chaseAndKill(ti) end end
+-- === МОЩНАЯ ФУНКЦИЯ АВТО-УБИЙСТВА НОЖОМ С ВОЗВРАТОМ НА МЕСТО ===
+local isKilling = false
+local function autoKnifeKillAndReturn(targetPlayer)
+    if isKilling or not ScriptActive or not targetPlayer or not targetPlayer.Character then return end
+    
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHum = targetPlayer.Character:FindFirstChild("Humanoid")
+    
+    if not myRoot or not targetRoot or (targetHum and targetHum.Health <= 0) then return end
+    
+    local knife = LocalPlayer.Backpack:FindFirstChild("Knife") or myChar:FindFirstChild("Knife")
+    if not knife then return end
+    
+    isKilling = true
+    
+    if knife.Parent == LocalPlayer.Backpack then
+        knife.Parent = myChar
+    end
+    
+    local originalCFrame = myRoot.CFrame
+    local startTime = tick()
+    local killLoop
+    
+    local noclipConnect = RunService.Stepped:Connect(function()
+        if myChar then
+            for _, part in pairs(myChar:GetChildren()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end)
+    
+    killLoop = RunService.Heartbeat:Connect(function()
+        local myCurrentChar = LocalPlayer.Character
+        local myCurrentRoot = myCurrentChar and myCurrentChar:FindFirstChild("HumanoidRootPart")
+        
+        if not ScriptActive or tick() - startTime > 1.5 or not targetRoot or not targetRoot.Parent or (targetHum and targetHum.Health <= 0) or not myCurrentRoot then
+            if killLoop then killLoop:Disconnect() end
+            if noclipConnect then noclipConnect:Disconnect() end
+            
+            myCurrentRoot.Velocity = Vector3.new(0,0,0)
+            myCurrentRoot.CFrame = originalCFrame
+            
+            task.wait(0.1)
+            isKilling = false
+            return
+        end
+        
+        local enemyVelocity = targetRoot.AssemblyLinearVelocity
+        local predictedPos = targetRoot.Position + (enemyVelocity * 0.23)
+        
+        myCurrentRoot.CFrame = CFrame.new(predictedPos) * CFrame.new(0, 0, 0.3)
+        
+        if knife and knife:FindFirstChild("Stab") then
+            knife.Stab:FireServer(0.005)
+        elseif knife and knife:FindFirstChild("Slash") then
+            knife.Slash:FireServer(0.005)
+        end
+    end)
+end
+
+local function actionKillSheriff() local ts = findActiveInGamePlayer("ШЕРИФ") if ts then autoKnifeKillAndReturn(ts) end end
+local function actionKillInnocents() local ti = findActiveInGamePlayer("МИРНЫЙ") if ti then autoKnifeKillAndReturn(ti) end end
 
 FastKillSBtn.MouseButton1Click:Connect(actionKillSheriff)
 FastKillIBtn.MouseButton1Click:Connect(actionKillInnocents)
@@ -506,7 +568,6 @@ RunService.RenderStepped:Connect(function()
     if moveDir.Magnitude > 0 then FlyVelocity.Velocity = moveDir.Unit * FlySpeed else FlyVelocity.Velocity = Vector3.new(0,0,0) end
 end)
 
--- === ОБНОВЛЕННАЯ СИСТЕМА ESP (НЕ ПРОПАДАЕТ В НОВОМ РАУНДЕ) ===
 local function updateESP(playerInstance, character, color, enabled)
     if not ScriptActive then return end
     
@@ -610,7 +671,6 @@ Players.PlayerAdded:Connect(function(p)
         if nameGui then nameGui:Destroy() end
     end)
 end)
--- ==========================================================
 
 task.spawn(function()
     while ScriptActive do
@@ -619,7 +679,7 @@ task.spawn(function()
             local role, _ = getPlayerStatus(p)
             if role == "УБИЙЦА" then Murderer = p elseif role == "ШЕРИФ" then Sheriff = p end
         end
-        InfoLabel.Text = "⚔️ Убийца: " .. (Murderer and Murderer.DisplayName or "Неизвестен") .. "  |  ⭐ Шериф: " .. (Sheriff and Sheriff.DisplayName or "Неизвестen")
+        InfoLabel.Text = "⚔️ Убийца: " .. (Murderer and Murderer.DisplayName or "Неизвестен") .. "  |  ⭐ Шериф: " .. (Sheriff and Sheriff.DisplayName or "Неизвестен")
         task.wait(0.5)
     end
 end)
@@ -632,174 +692,168 @@ TpButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- === ФУНКЦИИ ФЛИНГА С КЛИЕНТСКОЙ НЕУЯЗВИМОСТЬЮ (РАЗРЫВ ХИТБОКСОВ) ===
+
 local function runFlingLogic(targetPlayer)
     if not ScriptActive or not targetPlayer or not targetPlayer.Character then return end
-    
     local char = LocalPlayer.Character 
     local root = char and char:FindFirstChild("HumanoidRootPart") 
     local hum = char and char:FindFirstChild("Humanoid")
-    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart") 
     local targetHum = targetPlayer.Character:FindFirstChild("Humanoid")
     
     if not root or hum.Health <= 0 or not targetHRP or (targetHum and targetHum.Health <= 0) then return end
     
     local originalCFrame = root.CFrame
     
-    local noclipLoop = RunService.Stepped:Connect(function()
-        if char then
-            for _, part in pairs(char:GetChildren()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
+    local savedJoints = {}
+    for _, joint in pairs(char:GetDescendants()) do
+        if joint:IsA("Motor6D") or joint:IsA("Weld") then
+            table.insert(savedJoints, {Joint = joint, Part0 = joint.Part0, Part1 = joint.Part1, Parent = joint.Parent})
+            joint.Part0 = nil
+            joint.Part1 = nil
         end
+    end
+    
+    local noclipLoop = RunService.Stepped:Connect(function() 
+        if char then 
+            for _, part in pairs(char:GetChildren()) do 
+                if part:IsA("BasePart") then part.CanCollide = false end 
+            end 
+        end 
     end)
     
     local bAV = Instance.new("BodyAngularVelocity") 
     bAV.MaxTorque = Vector3.new(0, math.huge, 0) 
-    bAV.AngularVelocity = Vector3.new(0, 95000, 0)
+    bAV.AngularVelocity = Vector3.new(0, 9500, 0) 
     bAV.Parent = root
     
-    local bV = Instance.new("BodyVelocity")
-    bV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bV.Velocity = Vector3.new(0, 0, 0)
+    local bV = Instance.new("BodyVelocity") 
+    bV.MaxForce = Vector3.new(math.huge, math.huge, math.huge) 
+    bV.Velocity = Vector3.new(0, 0, 0) 
     bV.Parent = root
     
-    hum.Sit = true 
     local startTime = tick() 
     local flingLoop
     
     flingLoop = RunService.Heartbeat:Connect(function()
         local elapsed = tick() - startTime
-        
-        if not ScriptActive or elapsed > 0.5 or not targetHRP.Parent or (targetHum and targetHum.Health <= 0) then
-            flingLoop:Disconnect() 
-            noclipLoop:Disconnect()
-            bAV:Destroy() 
-            bV:Destroy()
+        if not ScriptActive or elapsed > 0.8 or not targetHRP.Parent or (targetHum and targetHum.Health <= 0) then
+            if flingLoop then flingLoop:Disconnect() end 
+            if noclipLoop then noclipLoop:Disconnect() end 
+            if bAV then bAV:Destroy() end 
+            if bV then bV:Destroy() end
             
-            root.Velocity = Vector3.new(0,0,0)
-            root.RotVelocity = Vector3.new(0,0,0)
-            hum.PlatformStand = true 
-            
+            root.Velocity = Vector3.new(0,0,0) 
+            root.RotVelocity = Vector3.new(0,0,0) 
             root.Anchored = true
-            for i = 1, 15 do
-                root.CFrame = originalCFrame
-                root.Velocity = Vector3.new(0,0,0)
-                root.RotVelocity = Vector3.new(0,0,0)
-                RunService.Heartbeat:Wait()
-            end
             
-            root.Anchored = false
-            hum.PlatformStand = false
-            hum.Sit = false
-            
-            if char then
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then part.CanCollide = true end
+            for _, data in pairs(savedJoints) do
+                if data.Joint and data.Joint.Parent then
+                    data.Joint.Part0 = data.Part0
+                    data.Joint.Part1 = data.Part1
                 end
             end
+            
+            for i = 1, 10 do 
+                root.CFrame = originalCFrame 
+                root.Velocity = Vector3.new(0,0,0) 
+                root.RotVelocity = Vector3.new(0,0,0) 
+                RunService.Heartbeat:Wait() 
+            end
+            
+            root.Anchored = false 
+            if hum then hum.Sit = false end 
             return
         end
         
-        local targetVelocity = targetHRP.Velocity
-        local leadPosition = targetHRP.Position + (targetVelocity * 0.05)
-        
-        root.CFrame = CFrame.new(leadPosition)
-        root.Velocity = Vector3.new(targetVelocity.X * 1.3, 0, targetVelocity.Z * 1.3)
+        local moveVelocity = targetHRP.AssemblyLinearVelocity 
+        local leadPosition = targetHRP.Position + (moveVelocity * 0.07)
+        root.CFrame = CFrame.new(leadPosition) 
+        root.AssemblyLinearVelocity = Vector3.new(moveVelocity.X * 2, 60, moveVelocity.Z * 2)
     end)
 end
 
--- === ИСПРАВЛЕННЫЙ ОНЛИ-ФЛИНГ (С ГАРАНТИЕЙ ВОЗВРАТА ФИЗИКИ) ===
 local function runVoidFlingLogic(targetPlayer)
     if not ScriptActive or not targetPlayer or not targetPlayer.Character then return end
-    
     local char = LocalPlayer.Character 
     local root = char and char:FindFirstChild("HumanoidRootPart") 
     local hum = char and char:FindFirstChild("Humanoid")
-    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart") 
+    local targetHum = targetPlayer.Character:FindFirstChild("Humanoid")
     
-    if not root or hum.Health <= 0 or not targetHRP then return end
+    if not root or hum.Health <= 0 or not targetHRP or (targetHum and targetHum.Health <= 0) then return end
     
     local originalCFrame = root.CFrame
-    local oldGravity = workspace.Gravity
-    workspace.Gravity = 0 -- Вырубаем гравитацию для полета
     
-    local noclipLoop = RunService.Stepped:Connect(function()
-        if char then
-            for _, part in pairs(char:GetChildren()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
+    local savedJoints = {}
+    for _, joint in pairs(char:GetDescendants()) do
+        if joint:IsA("Motor6D") or joint:IsA("Weld") then
+            table.insert(savedJoints, {Joint = joint, Part0 = joint.Part0, Part1 = joint.Part1, Parent = joint.Parent})
+            joint.Part0 = nil
+            joint.Part1 = nil
         end
+    end
+    
+    local noclipLoop = RunService.Stepped:Connect(function() 
+        if char then 
+            for _, part in pairs(char:GetChildren()) do 
+                if part:IsA("BasePart") then part.CanCollide = false end 
+            end 
+        end 
     end)
     
     local bAV = Instance.new("BodyAngularVelocity") 
     bAV.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
-    bAV.AngularVelocity = Vector3.new(100000, 100000, 100000)
+    bAV.AngularVelocity = Vector3.new(15000, 15000, 15000) 
     bAV.Parent = root
     
-    local bPos = Instance.new("BodyPosition")
-    bPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bPos.P = 50000
-    bPos.D = 500
-    bPos.Position = targetHRP.Position
-    bPos.Parent = root
-    
-    hum.PlatformStand = true
+    if hum then hum.PlatformStand = true end 
     local startTime = tick() 
     local voidLoop
     
     voidLoop = RunService.Heartbeat:Connect(function()
         local elapsed = tick() - startTime
-        
-        -- Усиленная ранняя проверка на пропажу цели или тайм-аут
-        if not ScriptActive or elapsed > 1.2 or not targetHRP or not targetHRP.Parent then
-            voidLoop:Disconnect() 
-            noclipLoop:Disconnect()
-            bAV:Destroy() 
-            bPos:Destroy()
+        if not ScriptActive or elapsed > 0.9 or not targetHRP or not targetHRP.Parent or (targetHum and targetHum.Health <= 0) then
+            if voidLoop then voidLoop:Disconnect() end 
+            if noclipLoop then noclipLoop:Disconnect() end 
+            if bAV then bAV:Destroy() end
             
-            -- Возвращаем гравитацию на дефолт (196.2), если старая поломалась
-            workspace.Gravity = (oldGravity > 0 and oldGravity) or 196.2 
-            
-            root.Velocity = Vector3.new(0,0,0)
-            root.RotVelocity = Vector3.new(0,0,0)
-            
+            root.Velocity = Vector3.new(0,0,0) 
+            root.RotVelocity = Vector3.new(0,0,0) 
             root.Anchored = true
-            for i = 1, 20 do
-                root.CFrame = originalCFrame
-                root.Velocity = Vector3.new(0,0,0)
-                root.RotVelocity = Vector3.new(0,0,0)
-                RunService.Heartbeat:Wait()
-            end
             
-            root.Anchored = false
-            hum.PlatformStand = false
-            
-            if char then
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then part.CanCollide = true end
+            for _, data in pairs(savedJoints) do
+                if data.Joint and data.Joint.Parent then
+                    data.Joint.Part0 = data.Part0
+                    data.Joint.Part1 = data.Part1
                 end
             end
+            
+            for i = 1, 10 do 
+                root.CFrame = originalCFrame 
+                root.Velocity = Vector3.new(0,0,0) 
+                root.RotVelocity = Vector3.new(0,0,0) 
+                RunService.Heartbeat:Wait() 
+            end
+            
+            root.Anchored = false 
+            if hum then hum.PlatformStand = false hum.Sit = false end 
             return
         end
         
-        if targetHRP and targetHRP.Parent then
-            bPos.Position = targetHRP.Position
-            root.CFrame = CFrame.new(targetHRP.Position) * CFrame.Angles(math.random(), math.random(), math.random())
-        end
+        local moveVel = targetHRP.AssemblyLinearVelocity
+        local pX = targetHRP.Position.X + (moveVel.X * 0.23) 
+        local pY = targetHRP.Position.Y + math.clamp(moveVel.Y * 0.1, -3, 3) 
+        local pZ = targetHRP.Position.Z + (moveVel.Z * 0.23)
+        root.CFrame = CFrame.new(pX, pY, pZ) 
+        root.AssemblyLinearVelocity = Vector3.new(3500, 3500, 3500)
     end)
 end
 
 FlingButton.MouseButton1Click:Connect(function() if SelectedFlingPlayer then runFlingLogic(SelectedFlingPlayer) end end)
 FlingMurdButton.MouseButton1Click:Connect(function() local tm = findActiveInGamePlayer("УБИЙЦА") if tm then runFlingLogic(tm) end end)
-
-FlingCheaterButton.MouseButton1Click:Connect(function() 
-    if SelectedFlingPlayer then 
-        runVoidFlingLogic(SelectedFlingPlayer) 
-    else
-        local tm = findActiveInGamePlayer("УБИЙЦА") 
-        if tm then runVoidFlingLogic(tm) end
-    end 
-end)
+FlingCheaterButton.MouseButton1Click:Connect(function() if SelectedFlingPlayer then runVoidFlingLogic(SelectedFlingPlayer) end end)
 
 local Waypoints = {} 
 local WpBinds = {} 
@@ -812,8 +866,7 @@ local function saveWaypointsToPC()
             local bindName = WpBinds[name] and WpBinds[name].Name or "None"
             local x, y, z = cf:ToEulerAnglesXYZ()
             rawData[name] = {cf.X, cf.Y, cf.Z, x, y, z, bindName} 
-        end 
-        pcall(function() writefile(FileName, HttpService:JSONEncode(rawData)) end) 
+        end pcall(function() writefile(FileName, HttpService:JSONEncode(rawData)) end) 
     end 
 end
 
@@ -855,10 +908,7 @@ local function renderWaypoints()
         local DelBtn = Instance.new("TextButton")
         DelBtn.Parent = ItemFrame DelBtn.Size = UDim2.new(0.2, -4, 1, 0) DelBtn.Position = UDim2.new(0.8, 4, 0, 0) DelBtn.BackgroundTransparency = 1 DelBtn.Text = "×" DelBtn.TextColor3 = Color3.fromRGB(200, 80, 80) DelBtn.TextSize = 16
         
-        TeleportBtn.MouseButton1Click:Connect(function() 
-            if ScriptActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = cf end 
-        end)
-        
+        TeleportBtn.MouseButton1Click:Connect(function() if ScriptActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = cf end end)
         WpBindBtn.MouseButton1Click:Connect(function() TargetWpBindName = name ListeningForBind = "Waypoint" WpBindBtn.Text = "..." end)
         ResetBindBtn.MouseButton1Click:Connect(function() WpBinds[name] = nil saveWaypointsToPC() renderWaypoints() end)
         DelBtn.MouseButton1Click:Connect(function() Waypoints[name] = nil WpBinds[name] = nil saveWaypointsToPC() renderWaypoints() end)
@@ -876,7 +926,6 @@ end)
 
 UserInputService.InputBegan:Connect(function(input, gpe)
     if not ScriptActive then return end
-    
     if ListeningForBind then
         if input.UserInputType == Enum.UserInputType.Keyboard then
             if ListeningForBind == "HideGui" then Binds.HideGui = input.KeyCode BindHideBtn.Text = "Бинд: " .. input.KeyCode.Name
@@ -885,12 +934,9 @@ UserInputService.InputBegan:Connect(function(input, gpe)
             elseif ListeningForBind == "KillInnocents" then Binds.KillInnocents = input.KeyCode BindKillIBtn.Text = "Бинд Мирных: [" .. input.KeyCode.Name .. "]"
             elseif ListeningForBind == "Waypoint" and TargetWpBindName then WpBinds[TargetWpBindName] = input.KeyCode TargetWpBindName = nil saveWaypointsToPC() renderWaypoints() end
             ListeningForBind = nil
-        end
-        return
+        end return
     end
-    
     if gpe then return end
-    
     if input.UserInputType == Enum.UserInputType.Keyboard then
         if input.KeyCode == Binds.HideGui then MainFrame.Visible = not MainFrame.Visible
         elseif input.KeyCode == Binds.ToggleFly then toggleFlyLogic()
@@ -899,8 +945,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
         else
             for name, key in pairs(WpBinds) do
                 if key == input.KeyCode and Waypoints[name] and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = Waypoints[name]
-                    break
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = Waypoints[name] break
                 end
             end
         end
@@ -917,21 +962,9 @@ end)
 
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 if isMobile then
-    local MobileBtn = Instance.new("TextButton")
-    MobileBtn.Name = "MobileToggle"
-    MobileBtn.Parent = ScreenGui
-    MobileBtn.Size = UDim2.new(0, 50, 0, 50)
-    MobileBtn.Position = UDim2.new(0, 10, 0, 150)
-    MobileBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    MobileBtn.Text = "МЕНЮ"
-    MobileBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    MobileBtn.TextSize = 12
-    MobileBtn.Font = Enum.Font.SourceSansBold
-    MobileBtn.Draggable = true
-    MobileBtn.Active = true
+    local MobileBtn = Instance.new("TextButton") MobileBtn.Name = "MobileToggle" MobileBtn.Parent = ScreenGui MobileBtn.Size = UDim2.new(0, 50, 0, 50) MobileBtn.Position = UDim2.new(0, 10, 0, 150) MobileBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35) MobileBtn.Text = "МЕНЮ" MobileBtn.TextColor3 = Color3.fromRGB(255, 255, 255) MobileBtn.TextSize = 12 MobileBtn.Font = Enum.Font.SourceSansBold MobileBtn.Draggable = true MobileBtn.Active = true
     local MobCorner = Instance.new("UICorner") MobCorner.CornerRadius = UDim.new(0, 8) MobCorner.Parent = MobileBtn
     MobileBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 end
 
-pcall(loadWaypointsFromPC)
-pcall(renderWaypoints)
+pcall(loadWaypointsFromPC) pcall(renderWaypoints)
