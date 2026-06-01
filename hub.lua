@@ -8,12 +8,14 @@ local TweenService = game:GetService("TweenService")
 -- Определяем безопасное место для GUI
 local TargetGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Функция для полной очистки ESP перед удалением хаба
+-- Функция для полной очистки ESP и ников перед удалением хаба
 local function clearAllESP()
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character then
             local hl = p.Character:FindFirstChild("Ultimate_ESP")
             if hl then hl:Destroy() end
+            local nameGui = p.Character:FindFirstChild("CustomNameGui")
+            if nameGui then nameGui:Destroy() end
         end
     end
 end
@@ -136,7 +138,7 @@ Title.Parent = MainFrame
 Title.Size = UDim2.new(0.5, 0, 0, 44)
 Title.Position = UDim2.new(0, 16, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "MM2 HUB V3 FULL"
+Title.Text = "MM2 HUB V3.2 FULL"
 Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -334,7 +336,6 @@ local function findActiveInGamePlayer(roleName)
     return nil
 end
 
--- === УБИЙСТВО С ЗАДЕРЖКОЙ ДЛЯ ХИТБОКСА ===
 local function chaseAndKill(targetPlayer)
     if not targetPlayer or not targetPlayer.Character then return end
     local myChar = LocalPlayer.Character
@@ -536,14 +537,61 @@ RunService.RenderStepped:Connect(function()
     if moveDir.Magnitude > 0 then FlyVelocity.Velocity = moveDir.Unit * FlySpeed else FlyVelocity.Velocity = Vector3.new(0,0,0) end
 end)
 
-local function updateESP(character, color, enabled)
+-- === УЛУЧШЕННАЯ СИСТЕМА ESP И НИКОВ НАД ГОЛОВОЙ ===
+local function updateESP(character, color, enabled, playerInstance)
     if not ScriptActive or not character then return end
+    
+    -- 1. Подсветка (Highlight)
     local hl = character:FindFirstChild("Ultimate_ESP")
-    if not enabled then if hl then hl:Destroy() end return end
-    if not hl then hl = Instance.new("Highlight") hl.Name = "Ultimate_ESP" hl.OutlineColor = Color3.fromRGB(255, 255, 255) hl.FillTransparency = 0.4 hl.Parent = character end
-    hl.FillColor = color
+    if not enabled then 
+        if hl then hl:Destroy() end 
+    else
+        if not hl then 
+            hl = Instance.new("Highlight") 
+            hl.Name = "Ultimate_ESP" 
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255) 
+            hl.FillTransparency = 0.4 
+            hl.Parent = character 
+        end
+        hl.FillColor = color
+    end
+
+    -- 2. Ники над головой (BillboardGui)
+    local head = character:FindFirstChild("Head")
+    if not enabled or not head then 
+        if character:FindFirstChild("CustomNameGui") then 
+            character.CustomNameGui:Destroy() 
+        end 
+        return 
+    end
+
+    local nameGui = character:FindFirstChild("CustomNameGui")
+    if not nameGui then
+        nameGui = Instance.new("BillboardGui")
+        nameGui.Name = "CustomNameGui"
+        nameGui.AlwaysOnTop = true
+        nameGui.Size = UDim2.new(0, 200, 0, 50)
+        nameGui.StudsOffset = Vector3.new(0, 2.5, 0)
+        nameGui.Parent = character
+
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Parent = nameGui
+        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Font = Enum.Font.SourceSansBold
+        nameLabel.TextSize = 14
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    end
+
+    local roleText, _ = getPlayerStatus(playerInstance)
+    local displayName = playerInstance.DisplayName or playerInstance.Name
+    nameGui.NameLabel.Text = displayName .. " [" .. roleText .. "]"
+    nameGui.NameLabel.TextColor3 = color
 end
 
+-- Цикл Heartbeat для ESP и отображения статусов
 RunService.Heartbeat:Connect(function()
     if not ScriptActive then return end
     local Murderer, Sheriff = nil, nil
@@ -556,9 +604,9 @@ RunService.Heartbeat:Connect(function()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local role, _ = getPlayerStatus(p)
-            if role == "УБИЙЦА" then updateESP(p.Character, Color3.fromRGB(255, 0, 0), States.Murd)
-            elseif role == "ШЕРИФ" then updateESP(p.Character, Color3.fromRGB(0, 0, 255), States.Sheriff)
-            else updateESP(p.Character, Color3.fromRGB(0, 255, 0), States.Innocents) end
+            if role == "УБИЙЦА" then updateESP(p.Character, Color3.fromRGB(255, 50, 50), States.Murd, p)
+            elseif role == "ШЕРИФ" then updateESP(p.Character, Color3.fromRGB(50, 100, 255), States.Sheriff, p)
+            else updateESP(p.Character, Color3.fromRGB(100, 200, 100), States.Innocents, p) end
         end
     end
 end)
@@ -583,10 +631,8 @@ local function runFlingLogic(targetPlayer)
     
     if not root or hum.Health <= 0 or not targetHRP or (targetHum and targetHum.Health <= 0) then return end
     
-    -- Запоминаем точную позицию ДО флинга
     local originalCFrame = root.CFrame
     
-    -- Жесткий локальный NoClip, чтобы не забагаться в текстурах при движении хитбокса
     local noclipLoop = RunService.Stepped:Connect(function()
         if char then
             for _, part in pairs(char:GetChildren()) do
@@ -595,7 +641,6 @@ local function runFlingLogic(targetPlayer)
         end
     end)
     
-    -- Силовые элементы вращения хитбокса
     local bAV = Instance.new("BodyAngularVelocity") 
     bAV.MaxTorque = Vector3.new(0, math.huge, 0) 
     bAV.AngularVelocity = Vector3.new(0, 95000, 0)
@@ -613,22 +658,19 @@ local function runFlingLogic(targetPlayer)
     flingLoop = RunService.Heartbeat:Connect(function()
         local elapsed = tick() - startTime
         
-        -- Выход из флинга (0.5 сек хватает с головой)
         if not ScriptActive or elapsed > 0.5 or not targetHRP.Parent or (targetHum and targetHum.Health <= 0) then
             flingLoop:Disconnect() 
             noclipLoop:Disconnect()
             bAV:Destroy() 
             bV:Destroy()
             
-            -- Очистка скоростей
             root.Velocity = Vector3.new(0,0,0)
             root.RotVelocity = Vector3.new(0,0,0)
-            hum.PlatformStand = true -- Выключаем внутреннюю физику Roblox-гуманоида
+            hum.PlatformStand = true 
             
-            -- Жесткий Якорь
             root.Anchored = true
             
-            -- Цикл принудительного удержания в исходной точке для очистки сетевого буфера скоростей
+            -- Буфер гашения скорости на 15 кадров
             for i = 1, 15 do
                 root.CFrame = originalCFrame
                 root.Velocity = Vector3.new(0,0,0)
@@ -636,12 +678,10 @@ local function runFlingLogic(targetPlayer)
                 RunService.Heartbeat:Wait()
             end
             
-            -- Возвращаем управление персонажу
             root.Anchored = false
             hum.PlatformStand = false
             hum.Sit = false
             
-            -- Восстанавливаем коллизии
             if char then
                 for _, part in pairs(char:GetChildren()) do
                     if part:IsA("BasePart") then part.CanCollide = true end
@@ -650,7 +690,6 @@ local function runFlingLogic(targetPlayer)
             return
         end
         
-        -- Удержание позиции с упреждением
         local targetVelocity = targetHRP.Velocity
         local leadPosition = targetHRP.Position + (targetVelocity * 0.05)
         
