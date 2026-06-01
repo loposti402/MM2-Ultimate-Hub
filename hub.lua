@@ -8,16 +8,20 @@ local TweenService = game:GetService("TweenService")
 -- Определяем безопасное место для GUI
 local TargetGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Папка для хранения ников вне персонажей (для оптимизации и плавности)
+local EspFolder = TargetGui:FindFirstChild("MM2_EspContainer") or Instance.new("Folder")
+EspFolder.Name = "MM2_EspContainer"
+EspFolder.Parent = TargetGui
+
 -- Функция для полной очистки ESP и ников перед удалением хаба
 local function clearAllESP()
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character then
             local hl = p.Character:FindFirstChild("Ultimate_ESP")
             if hl then hl:Destroy() end
-            local nameGui = p.Character:FindFirstChild("CustomNameGui")
-            if nameGui then nameGui:Destroy() end
         end
     end
+    EspFolder:ClearAllChildren()
 end
 
 -- Перезапуск скрипта при повторном инжекте
@@ -131,6 +135,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     end
     clearAllESP()
     ScreenGui:Destroy()
+    EspFolder:Destroy()
 end)
 
 local Title = Instance.new("TextLabel")
@@ -138,7 +143,7 @@ Title.Parent = MainFrame
 Title.Size = UDim2.new(0.5, 0, 0, 44)
 Title.Position = UDim2.new(0, 16, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "MM2 HUB V3.2 FULL"
+Title.Text = "MM2 HUB V3.3 OPTIMIZED"
 Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -537,11 +542,11 @@ RunService.RenderStepped:Connect(function()
     if moveDir.Magnitude > 0 then FlyVelocity.Velocity = moveDir.Unit * FlySpeed else FlyVelocity.Velocity = Vector3.new(0,0,0) end
 end)
 
--- === УЛУЧШЕННАЯ СИСТЕМА ESP И НИКОВ НАД ГОЛОВОЙ ===
-local function updateESP(character, color, enabled, playerInstance)
-    if not ScriptActive or not character then return end
+-- === ПЛАВНАЯ И ВЫСОКООПТИМИЗИРОВАННАЯ СИСТЕМА ESP ===
+local function updateESP(playerInstance, character, color, enabled)
+    if not ScriptActive then return end
     
-    -- 1. Подсветка (Highlight)
+    -- 1. Обработка Highlight (внутри персонажа)
     local hl = character:FindFirstChild("Ultimate_ESP")
     if not enabled then 
         if hl then hl:Destroy() end 
@@ -556,23 +561,23 @@ local function updateESP(character, color, enabled, playerInstance)
         hl.FillColor = color
     end
 
-    -- 2. Ники над головой (BillboardGui)
+    -- 2. Обработка ников (Вне персонажа, во внешней папке)
+    local nameGuiName = "NameGui_" .. playerInstance.Name
+    local nameGui = EspFolder:FindFirstChild(nameGuiName)
+    
     local head = character:FindFirstChild("Head")
-    if not enabled or not head then 
-        if character:FindFirstChild("CustomNameGui") then 
-            character.CustomNameGui:Destroy() 
-        end 
+    if not enabled or not head or not character:FindFirstChild("HumanoidRootPart") then 
+        if nameGui then nameGui:Destroy() end 
         return 
     end
 
-    local nameGui = character:FindFirstChild("CustomNameGui")
     if not nameGui then
         nameGui = Instance.new("BillboardGui")
-        nameGui.Name = "CustomNameGui"
+        nameGui.Name = nameGuiName
         nameGui.AlwaysOnTop = true
-        nameGui.Size = UDim2.new(0, 200, 0, 50)
-        nameGui.StudsOffset = Vector3.new(0, 2.5, 0)
-        nameGui.Parent = character
+        nameGui.Size = UDim2.new(0, 180, 0, 40)
+        nameGui.MaxDistance = 450 -- Ограничение дистанции рендера ников спасает FPS
+        nameGui.Parent = EspFolder
 
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "NameLabel"
@@ -580,34 +585,65 @@ local function updateESP(character, color, enabled, playerInstance)
         nameLabel.Size = UDim2.new(1, 0, 1, 0)
         nameLabel.BackgroundTransparency = 1
         nameLabel.Font = Enum.Font.SourceSansBold
-        nameLabel.TextSize = 14
+        nameLabel.TextSize = 13
         nameLabel.TextStrokeTransparency = 0
         nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     end
 
+    -- Прямая привязка Adornee (без пересоздания) гарантирует нулевой делей движения
+    if nameGui.Adornee ~= head then
+        nameGui.Adornee = head
+    end
+
     local roleText, _ = getPlayerStatus(playerInstance)
     local displayName = playerInstance.DisplayName or playerInstance.Name
-    nameGui.NameLabel.Text = displayName .. " [" .. roleText .. "]"
-    nameGui.NameLabel.TextColor3 = color
+    
+    -- Сравниваем старый текст, чтобы лишний раз не обновлять свойства (сильно снижает лаги)
+    local targetText = displayName .. " [" .. roleText .. "]"
+    if nameGui.NameLabel.Text ~= targetText then
+        nameGui.NameLabel.Text = targetText
+        nameGui.NameLabel.TextColor3 = color
+    end
 end
 
--- Цикл Heartbeat для ESP и отображения статусов
-RunService.Heartbeat:Connect(function()
+-- Основной поток рендеринга (Синхронизирован с частотой кадров дисплея)
+RunService.RenderStepped:Connect(function()
     if not ScriptActive then return end
-    local Murderer, Sheriff = nil, nil
-    for _, p in pairs(Players:GetPlayers()) do
-        local role, _ = getPlayerStatus(p)
-        if role == "УБИЙЦА" then Murderer = p elseif role == "ШЕРИФ" then Sheriff = p end
+    
+    -- Чистим ники вышедших игроков
+    for _, gui in pairs(EspFolder:GetChildren()) do
+        local pName = string.sub(gui.Name, 9)
+        local p = Players:FindFirstChild(pName)
+        if not p or not p.Character or not p.Character:FindFirstChild("Head") then
+            gui:Destroy()
+        end
     end
-    InfoLabel.Text = "⚔️ Убийца: " .. (Murderer and Murderer.DisplayName or "Неизвестен") .. "  |  ⭐ Шериф: " .. (Sheriff and Sheriff.DisplayName or "Неизвестен")
 
+    -- Обновляем данные для каждого активного игрока
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local role, _ = getPlayerStatus(p)
-            if role == "УБИЙЦА" then updateESP(p.Character, Color3.fromRGB(255, 50, 50), States.Murd, p)
-            elseif role == "ШЕРИФ" then updateESP(p.Character, Color3.fromRGB(50, 100, 255), States.Sheriff, p)
-            else updateESP(p.Character, Color3.fromRGB(100, 200, 100), States.Innocents, p) end
+            if role == "УБИЙЦА" then 
+                updateESP(p, p.Character, Color3.fromRGB(255, 50, 50), States.Murd)
+            elseif role == "ШЕРИФ" then 
+                updateESP(p, p.Character, Color3.fromRGB(50, 100, 255), States.Sheriff)
+            else 
+                updateESP(p, p.Character, Color3.fromRGB(100, 200, 100), States.Innocents) 
+            end
         end
+    end
+end)
+
+-- Легкий фоновый цикл только для текста инфо-панели (чтобы не грузить рендер)
+task.spawn(function()
+    while ScriptActive do
+        local Murderer, Sheriff = nil, nil
+        for _, p in pairs(Players:GetPlayers()) do
+            local role, _ = getPlayerStatus(p)
+            if role == "УБИЙЦА" then Murderer = p elseif role == "ШЕРИФ" then Sheriff = p end
+        end
+        InfoLabel.Text = "⚔️ Убийца: " .. (Murderer and Murderer.DisplayName or "Неизвестен") .. "  |  ⭐ Шериф: " .. (Sheriff and Sheriff.DisplayName or "Неизвестен")
+        task.wait(0.5)
     end
 end)
 
