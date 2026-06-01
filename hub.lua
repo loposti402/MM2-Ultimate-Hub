@@ -5,15 +5,12 @@ local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 
--- Определяем безопасное место для GUI
 local TargetGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Папка для хранения ников вне персонажей (для оптимизации и плавности)
 local EspFolder = TargetGui:FindFirstChild("MM2_EspContainer") or Instance.new("Folder")
 EspFolder.Name = "MM2_EspContainer"
 EspFolder.Parent = TargetGui
 
--- Функция для полной очистки ESP и ников перед удалением хаба
 local function clearAllESP()
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character then
@@ -26,14 +23,12 @@ local function clearAllESP()
     end
 end
 
--- Перезапуск скрипта при повторном инжекте
 if TargetGui:FindFirstChild("mm2_hub") then
     clearAllESP()
     TargetGui["mm2_hub"]:Destroy()
     task.wait(0.1)
 end
 
--- Создание интерфейса
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "mm2_hub"
 ScreenGui.Parent = TargetGui
@@ -44,7 +39,7 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.Position = UDim2.new(0.3, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 340, 0, 550)
+MainFrame.Size = UDim2.new(0, 340, 0, 580)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -52,7 +47,6 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 12)
 MainCorner.Parent = MainFrame
 
--- === ИЗМЕНЕНИЕ РАЗМЕРА ХАБА ===
 local ResizeBtn = Instance.new("ImageButton")
 ResizeBtn.Name = "ResizeBtn"
 ResizeBtn.Parent = MainFrame
@@ -85,7 +79,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- НАСТРОЙКИ ПО УМОЛЧАНИЮ И СОСТОЯНИЯ
 local Binds = { HideGui = Enum.KeyCode.RightControl, ToggleFly = Enum.KeyCode.F, KillSheriff = nil, KillInnocents = nil, Aim = nil }
 local States = { Murd = false, Sheriff = false, Innocents = false, Aim = false, Fly = false, NoClipInFly = false }
 local FlySpeed = 50 
@@ -122,7 +115,6 @@ local function stopFlying()
     if hum then hum.PlatformStand = false end
 end
 
--- [ИСПРАВЛЕНО] Полное выключение всех функций при закрытии
 CloseBtn.MouseButton1Click:Connect(function()
     ScriptActive = false
     States.Murd = false
@@ -141,6 +133,9 @@ CloseBtn.MouseButton1Click:Connect(function()
         end
     end
     
+    -- Принудительно возвращаем гравитацию при закрытии меню на всякий случай
+    workspace.Gravity = 196.2
+    
     clearAllESP()
     ScreenGui:Destroy()
     EspFolder:Destroy()
@@ -151,7 +146,7 @@ Title.Parent = MainFrame
 Title.Size = UDim2.new(0.5, 0, 0, 44)
 Title.Position = UDim2.new(0, 16, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "MM2 HUB V3.4 FIXED"
+Title.Text = "MM2 HIGH-BYPASS HUB"
 Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -179,7 +174,7 @@ MainScroll.Size = UDim2.new(1, 0, 1, -50)
 MainScroll.Position = UDim2.new(0, 0, 0, 44)
 MainScroll.BackgroundTransparency = 1
 MainScroll.ScrollBarThickness = 4
-MainScroll.CanvasSize = UDim2.new(0, 0, 0, 1300)
+MainScroll.CanvasSize = UDim2.new(0, 0, 0, 1400)
 
 local function styleButton(btn, text, pos, color, size, parent)
     btn.Parent = parent or MainScroll
@@ -195,7 +190,6 @@ local function styleButton(btn, text, pos, color, size, parent)
     btnCorner.Parent = btn
 end
 
--- Кнопки ESP
 local ToggleMurd = Instance.new("TextButton")
 local ToggleSheriff = Instance.new("TextButton")
 local ToggleInnocents = Instance.new("TextButton")
@@ -220,7 +214,6 @@ ToggleSheriff.MouseButton1Click:Connect(function() toggleState(ToggleSheriff, "S
 ToggleInnocents.MouseButton1Click:Connect(function() toggleState(ToggleInnocents, "Innocents", "Мирные (Зеленый)", Color3.fromRGB(30, 120, 50)) end)
 ToggleAim.MouseButton1Click:Connect(function() toggleState(ToggleAim, "Aim", "Аимбот (ПКМ)", Color3.fromRGB(100, 45, 130)) end)
 
--- Полёт
 local LineMove = Instance.new("Frame")
 LineMove.Parent = MainScroll LineMove.Size = UDim2.new(0.92, 0, 0, 1) LineMove.Position = UDim2.new(0.04, 0, 0, 195) LineMove.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineMove.BorderSizePixel = 0
 
@@ -266,7 +259,6 @@ ToggleNoClipFly.MouseButton1Click:Connect(function()
     end
 end)
 
--- Секция Флинга
 local LineFling = Instance.new("Frame")
 LineFling.Parent = MainScroll LineFling.Size = UDim2.new(0.92, 0, 0, 1) LineFling.Position = UDim2.new(0.04, 0, 0, 327) LineFling.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineFling.BorderSizePixel = 0
 
@@ -278,30 +270,30 @@ styleButton(FlingButton, "УНИЧТОЖИТЬ ЦЕЛЬ", UDim2.new(0.04, 0, 0, 
 local FlingMurdButton = Instance.new("TextButton")
 styleButton(FlingMurdButton, "🔥 УНИЧТОЖИТЬ МАРДЕРА", UDim2.new(0.04, 0, 0, 411), Color3.fromRGB(210, 80, 20))
 
--- Телепортация
+local FlingCheaterButton = Instance.new("TextButton")
+styleButton(FlingCheaterButton, "🌌 УНИЧТОЖИТЬ ЧИТЕРА ЗА КАРТОЙ", UDim2.new(0.04, 0, 0, 448), Color3.fromRGB(130, 20, 180))
+
 local LineTp = Instance.new("Frame")
-LineTp.Parent = MainScroll LineTp.Size = UDim2.new(0.92, 0, 0, 1) LineTp.Position = UDim2.new(0.04, 0, 0, 454) LineTp.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+LineTp.Parent = MainScroll LineTp.Size = UDim2.new(0.92, 0, 0, 1) LineTp.Position = UDim2.new(0.04, 0, 0, 494) LineTp.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
 
 local TpSelectBtn = Instance.new("TextButton") 
-styleButton(TpSelectBtn, "👤 Выбрать игрока для ТП", UDim2.new(0.04, 0, 0, 464), Color3.fromRGB(35, 35, 40))
+styleButton(TpSelectBtn, "👤 Выбрать игрока для ТП", UDim2.new(0.04, 0, 0, 504), Color3.fromRGB(35, 35, 40))
 local TpButton = Instance.new("TextButton") 
-styleButton(TpButton, "ТЕЛЕПОРТИРОВАТЬСЯ", UDim2.new(0.04, 0, 0, 501), Color3.fromRGB(35, 120, 150))
+styleButton(TpButton, "ТЕЛЕПОРТИРОВАТЬСЯ", UDim2.new(0.04, 0, 0, 541), Color3.fromRGB(35, 120, 150))
 
--- Слежение (Spectate)
 local LineSpec = Instance.new("Frame")
-LineSpec.Parent = MainScroll LineSpec.Size = UDim2.new(0.92, 0, 0, 1) LineSpec.Position = UDim2.new(0.04, 0, 0, 544) LineSpec.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineSpec.BorderSizePixel = 0
+LineSpec.Parent = MainScroll LineSpec.Size = UDim2.new(0.92, 0, 0, 1) LineSpec.Position = UDim2.new(0.04, 0, 0, 584) LineSpec.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineSpec.BorderSizePixel = 0
 
 local SpecSelectBtn = Instance.new("TextButton")
-styleButton(SpecSelectBtn, "👁️ Выбрать игрока для слежки", UDim2.new(0.04, 0, 0, 554), Color3.fromRGB(35, 35, 40))
+styleButton(SpecSelectBtn, "👁️ Выбрать игрока для слежки", UDim2.new(0.04, 0, 0, 594), Color3.fromRGB(35, 35, 40))
 local SpecButton = Instance.new("TextButton")
-styleButton(SpecButton, "НАЧАТЬ СЛЕДИТЬ", UDim2.new(0.04, 0, 0, 591), Color3.fromRGB(110, 85, 35))
+styleButton(SpecButton, "НАЧАТЬ СЛЕДИТЬ", UDim2.new(0.04, 0, 0, 631), Color3.fromRGB(110, 85, 35))
 
--- Кнопки преследования
 local LineFastBinds = Instance.new("Frame")
-LineFastBinds.Parent = MainScroll LineFastBinds.Size = UDim2.new(0.92, 0, 0, 1) LineFastBinds.Position = UDim2.new(0.04, 0, 0, 634) LineFastBinds.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineFastBinds.BorderSizePixel = 0
+LineFastBinds.Parent = MainScroll LineFastBinds.Size = UDim2.new(0.92, 0, 0, 1) LineFastBinds.Position = UDim2.new(0.04, 0, 0, 674) LineFastBinds.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineFastBinds.BorderSizePixel = 0
 
-local FastKillSBtn = Instance.new("TextButton") styleButton(FastKillSBtn, "🔪 Преследовать Шерифа", UDim2.new(0.04, 0, 0, 644), Color3.fromRGB(40, 80, 180))
-local FastKillIBtn = Instance.new("TextButton") styleButton(FastKillIBtn, "🔪 Преследовать Мирного", UDim2.new(0.04, 0, 0, 681), Color3.fromRGB(40, 150, 80))
+local FastKillSBtn = Instance.new("TextButton") styleButton(FastKillSBtn, "🔪 Преследовать Шерифа", UDim2.new(0.04, 0, 0, 684), Color3.fromRGB(40, 80, 180))
+local FastKillIBtn = Instance.new("TextButton") styleButton(FastKillIBtn, "🔪 Преследовать Мирного", UDim2.new(0.04, 0, 0, 721), Color3.fromRGB(40, 150, 80))
 
 function getPlayerStatus(p)
     if not p or not p.Parent then return "НЕТ В ИГРЕ", Color3.fromRGB(120,120,120) end
@@ -349,70 +341,36 @@ local function findActiveInGamePlayer(roleName)
     return nil
 end
 
-local function chaseAndKill(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    local myChar = LocalPlayer.Character
-    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetHum = targetPlayer.Character:FindFirstChild("Humanoid")
-    if not myRoot or not targetRoot or (targetHum and targetHum.Health <= 0) then return end
-    
-    local knife = LocalPlayer.Backpack:FindFirstChild("Knife") or myChar:FindFirstChild("Knife")
-    if not knife then return end
-    
-    local originalCFrame = myRoot.CFrame
-    knife.Parent = myChar
-    
-    local tween = TweenService:Create(myRoot, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {
-        CFrame = targetRoot.CFrame * CFrame.new(0, 0, 1.0)
-    })
-    tween:Play()
-    tween.Completed:Wait()
-    
-    for i = 1, 3 do
-        if targetRoot and targetRoot.Parent then
-            myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 0.8)
-            knife:Activate()
-            task.wait(0.1)
-        end
-    end
-    
-    task.wait(0.05)
-    myRoot.CFrame = originalCFrame
-end
-
-local function actionKillSheriff() local t = findActiveInGamePlayer("ШЕРИФ") if t then chaseAndKill(t) end end
-local function actionKillInnocents() local t = findActiveInGamePlayer("МИРНЫЙ") if t then chaseAndKill(t) end end
+local function actionKillSheriff() local ts = findActiveInGamePlayer("ШЕРИФ") if ts then chaseAndKill(ts) end end
+local function actionKillInnocents() local ti = findActiveInGamePlayer("МИРНЫЙ") if ti then chaseAndKill(ti) end end
 
 FastKillSBtn.MouseButton1Click:Connect(actionKillSheriff)
 FastKillIBtn.MouseButton1Click:Connect(actionKillInnocents)
 
-local BindKillSBtn = Instance.new("TextButton") styleButton(BindKillSBtn, "Бинд Шерифа: [НЕТ]", UDim2.new(0.04, 0, 0, 718), Color3.fromRGB(35, 35, 40))
-local BindKillIBtn = Instance.new("TextButton") styleButton(BindKillIBtn, "Бинд Мирных: [НЕТ]", UDim2.new(0.04, 0, 0, 755), Color3.fromRGB(35, 35, 40))
+local BindKillSBtn = Instance.new("TextButton") styleButton(BindKillSBtn, "Бинд Шерифа: [НЕТ]", UDim2.new(0.04, 0, 0, 758), Color3.fromRGB(35, 35, 40))
+local BindKillIBtn = Instance.new("TextButton") styleButton(BindKillIBtn, "Бинд Мирных: [НЕТ]", UDim2.new(0.04, 0, 0, 795), Color3.fromRGB(35, 35, 40))
 
 BindKillSBtn.MouseButton1Click:Connect(function() ListeningForBind = "KillSheriff" BindKillSBtn.Text = "Нажми..." end)
 BindKillIBtn.MouseButton1Click:Connect(function() ListeningForBind = "KillInnocents" BindKillIBtn.Text = "Нажми..." end)
 
--- Вейпоинты
 local LineWP = Instance.new("Frame")
-LineWP.Parent = MainScroll LineWP.Size = UDim2.new(0.92, 0, 0, 1) LineWP.Position = UDim2.new(0.04, 0, 0, 799) LineWP.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineWP.BorderSizePixel = 0
+LineWP.Parent = MainScroll LineWP.Size = UDim2.new(0.92, 0, 0, 1) LineWP.Position = UDim2.new(0.04, 0, 0, 839) LineWP.BackgroundColor3 = Color3.fromRGB(50, 50, 55) LineWP.BorderSizePixel = 0
 
 local WPInput = Instance.new("TextBox")
-WPInput.Parent = MainScroll WPInput.Size = UDim2.new(0.92, 0, 0, 32) WPInput.Position = UDim2.new(0.04, 0, 0, 809) WPInput.BackgroundColor3 = Color3.fromRGB(35, 35, 40) WPInput.TextColor3 = Color3.fromRGB(255, 255, 255) WPInput.PlaceholderText = "Название точки..."
+WPInput.Parent = MainScroll WPInput.Size = UDim2.new(0.92, 0, 0, 32) WPInput.Position = UDim2.new(0.04, 0, 0, 849) WPInput.BackgroundColor3 = Color3.fromRGB(35, 35, 40) WPInput.TextColor3 = Color3.fromRGB(255, 255, 255) WPInput.PlaceholderText = "Название точки..."
 WPInput.Text = "" WPInput.Font = Enum.Font.SourceSans WPInput.TextSize = 14
 local WPiC = Instance.new("UICorner") WPiC.CornerRadius = UDim.new(0, 6) WPiC.Parent = WPInput
 
 local WPAddBtn = Instance.new("TextButton") 
-styleButton(WPAddBtn, "+ Создать вейпоинт", UDim2.new(0.04, 0, 0, 846), Color3.fromRGB(45, 110, 65))
+styleButton(WPAddBtn, "+ Создать вейпоинт", UDim2.new(0.04, 0, 0, 886), Color3.fromRGB(45, 110, 65))
 
 local WPScroll = Instance.new("ScrollingFrame")
-WPScroll.Parent = MainScroll WPScroll.Size = UDim2.new(0.92, 0, 0, 85) WPScroll.Position = UDim2.new(0.04, 0, 0, 884) WPScroll.BackgroundTransparency = 1 WPScroll.CanvasSize = UDim2.new(0, 0, 0, 0) WPScroll.ScrollBarThickness = 3
+WPScroll.Parent = MainScroll WPScroll.Size = UDim2.new(0.92, 0, 0, 85) WPScroll.Position = UDim2.new(0.04, 0, 0, 924) WPScroll.BackgroundTransparency = 1 WPScroll.CanvasSize = UDim2.new(0, 0, 0, 0) WPScroll.ScrollBarThickness = 3
 
 local WPListLayout = Instance.new("UIListLayout")
 WPListLayout.Padding = UDim.new(0, 4)
 WPListLayout.Parent = WPScroll
 
--- Списки игроков (Dropdown)
 local DropdownGui = Instance.new("Frame")
 DropdownGui.Parent = ScreenGui
 DropdownGui.Size = UDim2.new(0, 260, 0, 220)
@@ -485,7 +443,6 @@ FlingSelectBtn.MouseButton1Click:Connect(function() openDropdown("Fling", FlingS
 TpSelectBtn.MouseButton1Click:Connect(function() openDropdown("TP", TpSelectBtn) end)
 SpecSelectBtn.MouseButton1Click:Connect(function() openDropdown("Spec", SpecSelectBtn) end)
 
--- Слежение логика
 SpecButton.MouseButton1Click:Connect(function()
     if not ScriptActive then return end
     if IsSpectating then
@@ -518,7 +475,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Полёт логика
 RunService.RenderStepped:Connect(function()
     if not ScriptActive or not States.Fly then return end
     local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") local hum = char and char:FindFirstChild("Humanoid")
@@ -550,38 +506,40 @@ RunService.RenderStepped:Connect(function()
     if moveDir.Magnitude > 0 then FlyVelocity.Velocity = moveDir.Unit * FlySpeed else FlyVelocity.Velocity = Vector3.new(0,0,0) end
 end)
 
--- СИСТЕМА ESP
+-- === ОБНОВЛЕННАЯ СИСТЕМА ESP (НЕ ПРОПАДАЕТ В НОВОМ РАУНДЕ) ===
 local function updateESP(playerInstance, character, color, enabled)
     if not ScriptActive then return end
     
-    local hl = character:FindFirstChild("Ultimate_ESP")
-    if not enabled then 
-        if hl then hl:Destroy() end 
-    else
-        if not hl then 
-            hl = Instance.new("Highlight") 
-            hl.Name = "Ultimate_ESP" 
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255) 
-            hl.FillTransparency = 0.4 
-            hl.Parent = character 
-        end
-        hl.FillColor = color
+    local head = character:WaitForChild("Head", 2)
+    local root = character:WaitForChild("HumanoidRootPart", 2)
+    
+    if not enabled or not head or not root then 
+        local hl = character:FindFirstChild("Ultimate_ESP")
+        if hl then hl:Destroy() end
+        local nameGui = EspFolder:FindFirstChild("NameGui_" .. playerInstance.Name)
+        if nameGui then nameGui:Destroy() end
+        return 
     end
+    
+    local hl = character:FindFirstChild("Ultimate_ESP")
+    if not hl then 
+        hl = Instance.new("Highlight") 
+        hl.Name = "Ultimate_ESP" 
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255) 
+        hl.FillTransparency = 0.4 
+        hl.Parent = character 
+    end
+    hl.FillColor = color
 
     local nameGuiName = "NameGui_" .. playerInstance.Name
     local nameGui = EspFolder:FindFirstChild(nameGuiName)
-    
-    local head = character:FindFirstChild("Head")
-    if not enabled or not head or not character:FindFirstChild("HumanoidRootPart") then 
-        if nameGui then nameGui:Destroy() end 
-        return 
-    end
 
     if not nameGui then
         nameGui = Instance.new("BillboardGui")
         nameGui.Name = nameGuiName
         nameGui.AlwaysOnTop = true
         nameGui.Size = UDim2.new(0, 180, 0, 40)
+        nameGui.StudsOffset = Vector3.new(0, 3, 0)
         nameGui.MaxDistance = 450 
         nameGui.Parent = EspFolder
 
@@ -602,15 +560,14 @@ local function updateESP(playerInstance, character, color, enabled)
 
     local roleText, _ = getPlayerStatus(playerInstance)
     local displayName = playerInstance.DisplayName or playerInstance.Name
-    
     local targetText = displayName .. " [" .. roleText .. "]"
+    
     if nameGui.NameLabel.Text ~= targetText then
         nameGui.NameLabel.Text = targetText
         nameGui.NameLabel.TextColor3 = color
     end
 end
 
--- Поток рендеринга
 RunService.RenderStepped:Connect(function()
     if not ScriptActive then return end
     
@@ -636,7 +593,25 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Фоновый цикл инфо-панели
+for _, p in pairs(Players:GetPlayers()) do
+    p.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        if not ScriptActive then return end
+        local nameGui = EspFolder:FindFirstChild("NameGui_" .. p.Name)
+        if nameGui then nameGui:Destroy() end
+    end)
+end
+
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        if not ScriptActive then return end
+        local nameGui = EspFolder:FindFirstChild("NameGui_" .. p.Name)
+        if nameGui then nameGui:Destroy() end
+    end)
+end)
+-- ==========================================================
+
 task.spawn(function()
     while ScriptActive do
         local Murderer, Sheriff = nil, nil
@@ -644,7 +619,7 @@ task.spawn(function()
             local role, _ = getPlayerStatus(p)
             if role == "УБИЙЦА" then Murderer = p elseif role == "ШЕРИФ" then Sheriff = p end
         end
-        InfoLabel.Text = "⚔️ Убийца: " .. (Murderer and Murderer.DisplayName or "Неизвестен") .. "  |  ⭐ Шериф: " .. (Sheriff and Sheriff.DisplayName or "Неизвестен")
+        InfoLabel.Text = "⚔️ Убийца: " .. (Murderer and Murderer.DisplayName or "Неизвестен") .. "  |  ⭐ Шериф: " .. (Sheriff and Sheriff.DisplayName or "Неизвестen")
         task.wait(0.5)
     end
 end)
@@ -657,7 +632,6 @@ TpButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- ФЛИНГ ЛОГИКА
 local function runFlingLogic(targetPlayer)
     if not ScriptActive or not targetPlayer or not targetPlayer.Character then return end
     
@@ -707,12 +681,11 @@ local function runFlingLogic(targetPlayer)
             hum.PlatformStand = true 
             
             root.Anchored = true
-            
             for i = 1, 15 do
                 root.CFrame = originalCFrame
                 root.Velocity = Vector3.new(0,0,0)
                 root.RotVelocity = Vector3.new(0,0,0)
-                Heartbeat:Wait()
+                RunService.Heartbeat:Wait()
             end
             
             root.Anchored = false
@@ -735,10 +708,99 @@ local function runFlingLogic(targetPlayer)
     end)
 end
 
+-- === ИСПРАВЛЕННЫЙ ОНЛИ-ФЛИНГ (С ГАРАНТИЕЙ ВОЗВРАТА ФИЗИКИ) ===
+local function runVoidFlingLogic(targetPlayer)
+    if not ScriptActive or not targetPlayer or not targetPlayer.Character then return end
+    
+    local char = LocalPlayer.Character 
+    local root = char and char:FindFirstChild("HumanoidRootPart") 
+    local hum = char and char:FindFirstChild("Humanoid")
+    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    
+    if not root or hum.Health <= 0 or not targetHRP then return end
+    
+    local originalCFrame = root.CFrame
+    local oldGravity = workspace.Gravity
+    workspace.Gravity = 0 -- Вырубаем гравитацию для полета
+    
+    local noclipLoop = RunService.Stepped:Connect(function()
+        if char then
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end)
+    
+    local bAV = Instance.new("BodyAngularVelocity") 
+    bAV.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) 
+    bAV.AngularVelocity = Vector3.new(100000, 100000, 100000)
+    bAV.Parent = root
+    
+    local bPos = Instance.new("BodyPosition")
+    bPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bPos.P = 50000
+    bPos.D = 500
+    bPos.Position = targetHRP.Position
+    bPos.Parent = root
+    
+    hum.PlatformStand = true
+    local startTime = tick() 
+    local voidLoop
+    
+    voidLoop = RunService.Heartbeat:Connect(function()
+        local elapsed = tick() - startTime
+        
+        -- Усиленная ранняя проверка на пропажу цели или тайм-аут
+        if not ScriptActive or elapsed > 1.2 or not targetHRP or not targetHRP.Parent then
+            voidLoop:Disconnect() 
+            noclipLoop:Disconnect()
+            bAV:Destroy() 
+            bPos:Destroy()
+            
+            -- Возвращаем гравитацию на дефолт (196.2), если старая поломалась
+            workspace.Gravity = (oldGravity > 0 and oldGravity) or 196.2 
+            
+            root.Velocity = Vector3.new(0,0,0)
+            root.RotVelocity = Vector3.new(0,0,0)
+            
+            root.Anchored = true
+            for i = 1, 20 do
+                root.CFrame = originalCFrame
+                root.Velocity = Vector3.new(0,0,0)
+                root.RotVelocity = Vector3.new(0,0,0)
+                RunService.Heartbeat:Wait()
+            end
+            
+            root.Anchored = false
+            hum.PlatformStand = false
+            
+            if char then
+                for _, part in pairs(char:GetChildren()) do
+                    if part:IsA("BasePart") then part.CanCollide = true end
+                end
+            end
+            return
+        end
+        
+        if targetHRP and targetHRP.Parent then
+            bPos.Position = targetHRP.Position
+            root.CFrame = CFrame.new(targetHRP.Position) * CFrame.Angles(math.random(), math.random(), math.random())
+        end
+    end)
+end
+
 FlingButton.MouseButton1Click:Connect(function() if SelectedFlingPlayer then runFlingLogic(SelectedFlingPlayer) end end)
 FlingMurdButton.MouseButton1Click:Connect(function() local tm = findActiveInGamePlayer("УБИЙЦА") if tm then runFlingLogic(tm) end end)
 
--- Система вейпоинтов
+FlingCheaterButton.MouseButton1Click:Connect(function() 
+    if SelectedFlingPlayer then 
+        runVoidFlingLogic(SelectedFlingPlayer) 
+    else
+        local tm = findActiveInGamePlayer("УБИЙЦА") 
+        if tm then runVoidFlingLogic(tm) end
+    end 
+end)
+
 local Waypoints = {} 
 local WpBinds = {} 
 local FileName = "mm2_waypoints_v3.txt"
@@ -812,7 +874,6 @@ WPAddBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ГЛОБАЛЬНЫЙ СКАНЕР БИНДОВ И КЛАВИАТУРЫ
 UserInputService.InputBegan:Connect(function(input, gpe)
     if not ScriptActive then return end
     
@@ -846,7 +907,6 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- АИМБОТ
 RunService.RenderStepped:Connect(function()
     if not ScriptActive or not States.Aim or not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
     local currentTarget = findActiveInGamePlayer("УБИЙЦА")
@@ -855,7 +915,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- МОБИЛЬНАЯ КНОПКА
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 if isMobile then
     local MobileBtn = Instance.new("TextButton")
